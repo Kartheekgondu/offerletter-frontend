@@ -1,15 +1,13 @@
-/* Offer Letter API.
- * Production MUST set VITE_API_BASE to the public Render service URL.
- * localhost is used only during local Vite development.
- */
-const configuredBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL;
-const API_BASE = (configuredBase || (import.meta.env.DEV ? 'http://localhost:9091' : '')).replace(/\/+$/, '');
-if (!API_BASE) {
-  throw new Error('Missing VITE_API_BASE. Set it in Vercel to your Render backend URL, then redeploy the frontend.');
-}
+/* API base URL: set VITE_API_BASE to the public Render URL in Vercel.
+   localhost is intentionally only the local-development fallback. */
+const configuredApiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL;
+const API_BASE = (configuredApiBase || (import.meta.env.DEV ? 'http://localhost:9091' : '')).replace(/\/+$/, '');
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {
+  if (!API_BASE) {
+    throw new Error('Backend URL is not configured. Set VITE_API_BASE to your public Render service URL in Vercel, then redeploy the frontend.');
+  }
   let response;
   try {
     response = await fetch(`${API_BASE}${path}`, {
@@ -18,7 +16,7 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     throw new Error(
-      `Cannot connect to ${API_BASE}. Check that your Render backend is awake and that APP_ALLOWED_ORIGINS includes this Vercel domain. Browser: ${error?.message || 'Network request failed'}`
+      `Cannot connect to ${API_BASE}. Confirm the Render service is running, VITE_API_BASE is correct, and APP_ALLOWED_ORIGINS includes this Vercel domain. Browser: ${error?.message || 'Network request failed'}`
     );
   }
 
@@ -42,7 +40,7 @@ async function request(path, options = {}) {
 
 export const sendOffer = (formData) => request('/api/send-offer', { method: 'POST', body: formData });
 export const saveOffer = (formData) => request('/api/save-offer', { method: 'POST', body: formData });
-export const searchOffers = (query) => request(`/api/search-offers?name=${encodeURIComponent(query)}`);
+export const searchOffers = (query) => request(`/api/search-offers?q=${encodeURIComponent(query)}`);
 export const listOffers = () => request('/api/offers');
 export const getOffer = (id) => request(`/api/offers/${encodeURIComponent(id)}`);
 

@@ -25,7 +25,9 @@ In Vercel → Project → Settings → Build and Development Settings:
 - Build Command: `npm run build`
 - Output Directory: `dist`
 
-The included `vercel.json` provides SPA fallback routing. Set `VITE_API_BASE` to the deployed backend URL in Vercel Environment Variables, then redeploy.
+The included `vercel.json` provides SPA fallback routing. Set `VITE_API_BASE` to the public Render service URL (for example `https://your-service.onrender.com`, without `/api`) in Vercel → Project → Settings → Environment Variables for Production, Preview, and Development as needed. Then redeploy the frontend. Do not set it to `localhost`.
+
+The frontend's `VITE_API_KEY` is shipped to every browser and is not a secure place for secrets. Leave it blank unless you deliberately accept that limitation; use proper user authentication/rate limiting for a public production API.
 
 ## API
 Set `VITE_API_BASE` in `frontend/.env` for local development. See `.env.example`.
