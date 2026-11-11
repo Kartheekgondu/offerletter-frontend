@@ -1,5 +1,12 @@
-/* Offer Letter API. Local default matches Spring Boot server.port=9091. */
-const API_BASE = (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || 'http://localhost:9091').replace(/\/+$/, '');
+/* Offer Letter API.
+ * Production MUST set VITE_API_BASE to the public Render service URL.
+ * localhost is used only during local Vite development.
+ */
+const configuredBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL;
+const API_BASE = (configuredBase || (import.meta.env.DEV ? 'http://localhost:9091' : '')).replace(/\/+$/, '');
+if (!API_BASE) {
+  throw new Error('Missing VITE_API_BASE. Set it in Vercel to your Render backend URL, then redeploy the frontend.');
+}
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {
@@ -11,7 +18,7 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     throw new Error(
-      `Cannot connect to ${API_BASE}. Confirm Spring Boot is running on port 9091 and allow the frontend origin in backend CORS. Browser: ${error?.message || 'Network request failed'}`
+      `Cannot connect to ${API_BASE}. Check that your Render backend is awake and that APP_ALLOWED_ORIGINS includes this Vercel domain. Browser: ${error?.message || 'Network request failed'}`
     );
   }
 
@@ -35,7 +42,7 @@ async function request(path, options = {}) {
 
 export const sendOffer = (formData) => request('/api/send-offer', { method: 'POST', body: formData });
 export const saveOffer = (formData) => request('/api/save-offer', { method: 'POST', body: formData });
-export const searchOffers = (query) => request(`/api/search-offers?q=${encodeURIComponent(query)}`);
+export const searchOffers = (query) => request(`/api/search-offers?name=${encodeURIComponent(query)}`);
 export const listOffers = () => request('/api/offers');
 export const getOffer = (id) => request(`/api/offers/${encodeURIComponent(id)}`);
 
