@@ -1,31 +1,20 @@
-# Start the Offer Letter frontend
+# Offer Letter frontend
 
-## Critical project structure
-This project must contain `index.html` in the **frontend root**, beside `package.json` and `vite.config.js`.
-It is included in this corrected ZIP. Without it, Vite can respond with HTTP 404 at `http://localhost:5173/`.
+## Local development
+1. Open a terminal in this `frontend` folder (the folder containing `package.json`).
+2. Run `npm ci`.
+3. Run `npm run dev`.
+4. Start the Spring Boot backend locally on port 9091.
+5. Open the Vite URL, normally http://localhost:5173.
 
-## Run locally (Windows PowerShell)
-1. Extract the ZIP.
-2. Open a terminal in the extracted `frontend` folder (the folder containing `package.json` and `index.html`).
-3. Run:
-
-```powershell
-npm install
-npm run dev -- --host 127.0.0.1
-```
-
-4. Open the exact URL printed by Vite, normally `http://localhost:5173/`.
-
-Do not run `npm run dev` from the parent folder or the backend folder.
+Vite proxies `/backend/*` to `http://localhost:9091/*`.
+The app API client always uses `/backend`, so the same frontend code works locally and on Vercel.
 
 ## Vercel
-In Vercel → Project → Settings → Build and Development Settings:
 - Root Directory: `frontend`
-- Framework Preset: `Vite`
-- Build Command: `npm run build`
-- Output Directory: `dist`
-
-The included `vercel.json` provides SPA fallback routing. Set `VITE_API_BASE` to the deployed backend URL in Vercel Environment Variables, then redeploy.
-
-## API
-Set `VITE_API_BASE` in `frontend/.env` for local development. See `.env.example`.
+- Framework: Vite
+- Build: `npm run build`
+- Output: `dist`
+- The `vercel.json` rewrite sends `/backend/*` to the Render backend.
+- Replace `YOUR-RENDER-SERVICE` in `vercel.json` with your real Render service hostname before deployment.
+- Do not configure `VITE_API_BASE` or `VITE_API_BASE_URL`; the app uses the same-origin `/backend` proxy.
