@@ -1,13 +1,15 @@
-/* API base URL: set VITE_API_BASE to the public Render URL in Vercel.
-   localhost is intentionally only the local-development fallback. */
-const configuredApiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL;
-const API_BASE = (configuredApiBase || (import.meta.env.DEV ? 'http://localhost:9091' : '')).replace(/\/+$/, '');
+/* API URL is injected by Vercel at build time. Local development uses Spring Boot. */
+const configuredApiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = (configuredApiBase.trim() || (import.meta.env.DEV ? 'http://localhost:9091' : '')).replace(/\/+$/, '');
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {
   if (!API_BASE) {
-    throw new Error('Backend URL is not configured. Set VITE_API_BASE to your public Render service URL in Vercel, then redeploy the frontend.');
+    throw new Error(
+      'Backend URL is not configured. In Vercel → Project → Settings → Environment Variables, add VITE_API_BASE=https://YOUR-RENDER-SERVICE.onrender.com for Production, then redeploy.'
+    );
   }
+
   let response;
   try {
     response = await fetch(`${API_BASE}${path}`, {
@@ -16,7 +18,7 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     throw new Error(
-      `Cannot connect to ${API_BASE}. Confirm the Render service is running, VITE_API_BASE is correct, and APP_ALLOWED_ORIGINS includes this Vercel domain. Browser: ${error?.message || 'Network request failed'}`
+      `Cannot connect to ${API_BASE}. Confirm Spring Boot is running on port 9091 and allow the frontend origin in backend CORS. Browser: ${error?.message || 'Network request failed'}`
     );
   }
 
