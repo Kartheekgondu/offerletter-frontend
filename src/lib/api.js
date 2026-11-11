@@ -1,15 +1,16 @@
-/* API URL is injected by Vercel at build time. Local development uses Spring Boot. */
+/*
+ * Local development uses Spring Boot's local port.
+ * Production must set VITE_API_BASE to the public Render HTTPS URL in Vercel.
+ * Never fall back to localhost in a deployed browser.
+ */
 const configuredApiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_BASE_URL || '';
-const API_BASE = (configuredApiBase.trim() || (import.meta.env.DEV ? 'http://localhost:9091' : '')).replace(/\/+$/, '');
+const API_BASE = (configuredApiBase || (import.meta.env.DEV ? 'http://localhost:9091' : '')).replace(/\/+$/, '');
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {
   if (!API_BASE) {
-    throw new Error(
-      'Backend URL is not configured. In Vercel → Project → Settings → Environment Variables, add VITE_API_BASE=https://YOUR-RENDER-SERVICE.onrender.com for Production, then redeploy.'
-    );
+    throw new Error('Backend URL is not configured. In Vercel set VITE_API_BASE to https://YOUR-RENDER-SERVICE.onrender.com, then redeploy the frontend.');
   }
-
   let response;
   try {
     response = await fetch(`${API_BASE}${path}`, {
@@ -18,7 +19,7 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     throw new Error(
-      `Cannot connect to ${API_BASE}. Confirm Spring Boot is running on port 9091 and allow the frontend origin in backend CORS. Browser: ${error?.message || 'Network request failed'}`
+      `Cannot connect to ${API_BASE}. Check that the Render service is live, APP_ALLOWED_ORIGINS includes this Vercel domain, and the browser is calling the correct HTTPS URL. Browser: ${error?.message || 'Network request failed'}`
     );
   }
 
@@ -42,7 +43,7 @@ async function request(path, options = {}) {
 
 export const sendOffer = (formData) => request('/api/send-offer', { method: 'POST', body: formData });
 export const saveOffer = (formData) => request('/api/save-offer', { method: 'POST', body: formData });
-export const searchOffers = (query) => request(`/api/search-offers?q=${encodeURIComponent(query)}`);
+export const searchOffers = (query) => request(`/api/search-offers?name=${encodeURIComponent(query)}`);
 export const listOffers = () => request('/api/offers');
 export const getOffer = (id) => request(`/api/offers/${encodeURIComponent(id)}`);
 
