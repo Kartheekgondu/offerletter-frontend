@@ -3,7 +3,7 @@
  * Local development uses Vite's proxy to the Spring Boot service on localhost:9091.
  * The browser never calls localhost in a production build.
  */
-const API_BASE = '/backend';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/backend').replace(/\/+$/, '');
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {

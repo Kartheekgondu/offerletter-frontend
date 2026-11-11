@@ -3,18 +3,18 @@
 ## Local development
 1. Open a terminal in this `frontend` folder (the folder containing `package.json`).
 2. Run `npm ci`.
-3. Run `npm run dev`.
-4. Start the Spring Boot backend locally on port 9091.
+3. Start the Offer Letter Spring Boot backend on port `9091`.
+4. Run `npm run dev`.
 5. Open the Vite URL, normally http://localhost:5173.
 
-Vite proxies `/backend/*` to `http://localhost:9091/*`.
-The app API client always uses `/backend`, so the same frontend code works locally and on Vercel.
+Like the Appraisal frontend, API requests use `/backend`. Vite proxies that prefix to
+`http://localhost:9091` locally.
 
-## Vercel
+## Vercel (same proxy structure as Appraisal)
 - Root Directory: `frontend`
 - Framework: Vite
-- Build: `npm run build`
-- Output: `dist`
-- The `vercel.json` rewrite sends `/backend/*` to the Render backend.
-- Replace `YOUR-RENDER-SERVICE` in `vercel.json` with your real Render service hostname before deployment.
-- Do not configure `VITE_API_BASE` or `VITE_API_BASE_URL`; the app uses the same-origin `/backend` proxy.
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- `vercel.json` rewrites `/backend/:path*` to the Offer Letter Render backend, then applies SPA fallback.
+- Replace `YOUR-OFFERLETTER-BACKEND` in `vercel.json` with the actual Offer Letter Render service hostname.
+- Leave `VITE_API_BASE_URL` unset to use the `/backend` proxy, exactly like Appraisal.
