@@ -1,20 +1,10 @@
 # Offer Letter frontend
 
-## Local development
-1. Open a terminal in this `frontend` folder (the folder containing `package.json`).
-2. Run `npm ci`.
-3. Start the Offer Letter Spring Boot backend on port `9091`.
-4. Run `npm run dev`.
-5. Open the Vite URL, normally http://localhost:5173.
+## Local
+`npm ci` -> start backend on 9091 -> `npm run dev` (Vite proxies /backend to localhost:9091).
 
-Like the Appraisal frontend, API requests use `/backend`. Vite proxies that prefix to
-`http://localhost:9091` locally.
-
-## Vercel (same proxy structure as Appraisal)
-- Root Directory: `frontend`
-- Framework: Vite
-- Build Command: `npm run build`
-- Output Directory: `dist`
-- `vercel.json` rewrites `/backend/:path*` to the Offer Letter Render backend, then applies SPA fallback.
-- Replace `YOUR-OFFERLETTER-BACKEND` in `vercel.json` with the actual Offer Letter Render service hostname.
-- Leave `VITE_API_BASE_URL` unset to use the `/backend` proxy, exactly like Appraisal.
+## Vercel
+- Root Directory: the folder containing package.json; Framework Vite; build `npm run build`; output `dist`
+- Option A: put your Render URL in vercel.json (replace YOUR-RENDER-SERVICE) and leave VITE_API_BASE_URL unset.
+- Option B (best for PDF uploads): set VITE_API_BASE_URL=https://offerletter-backend-y0aa.onrender.com in Vercel and redeploy.
+- Render env APP_ALLOWED_ORIGINS must equal your Vercel URL exactly.

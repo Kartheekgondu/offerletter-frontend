@@ -1,9 +1,12 @@
 /*
- * Production uses the same-origin Vercel proxy at /backend.
- * Local development uses Vite's proxy to the Spring Boot service on localhost:9091.
- * The browser never calls localhost in a production build.
+ * Production calls the Render backend directly (CORS is enabled on the backend for the
+ * Vercel origin), so it does not depend on Vercel rewrites. Local development uses Vite's
+ * /backend proxy to localhost:9091. Override anything with VITE_API_BASE_URL.
  */
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/backend').replace(/\/+$/, '');
+const RENDER_BACKEND = 'https://offerletter-backend-y0aa.onrender.com';
+const API_BASE = (
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? RENDER_BACKEND : '/backend')
+).replace(/\/+$/, '');
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {
@@ -32,7 +35,7 @@ async function request(path, options = {}) {
     const hint = response.status === 413
       ? 'The server or hosting proxy rejected the PDF because it is too large. Reduce PDF size and raise the backend/proxy upload limit.'
       : '';
-    throw new Error(`${detail || 'Request failed'} (HTTP ${response.status})${hint ? `. ${hint}` : ''}`);
+    throw new Error(`${detail || 'Request failed'} (HTTP ${response.status}) at ${API_BASE}${path}${hint ? `. ${hint}` : ''}`);
   }
   return result;
 }

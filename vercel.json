@@ -3,10 +3,10 @@
   "rewrites": [
     {
       "source": "/backend/:path*",
-      "destination": "https://YOUR-OFFERLETTER-BACKEND.onrender.com/:path*"
+      "destination": "https://offerletter-backend-y0aa.onrender.com/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!backend/).*)",
       "destination": "/index.html"
     }
   ]
