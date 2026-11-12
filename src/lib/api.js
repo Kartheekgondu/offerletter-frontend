@@ -1,12 +1,20 @@
 /*
- * Production calls the Render backend directly (CORS is enabled on the backend for the
- * Vercel origin), so it does not depend on Vercel rewrites. Local development uses Vite's
- * /backend proxy to localhost:9091. Override anything with VITE_API_BASE_URL.
+ * Production calls Render directly. Local development uses Vite's /backend proxy.
+ * Set VITE_API_BASE_URL only when you need to override the default.
  */
-const RENDER_BACKEND = 'https://offerletter-backend-y0aa.onrender.com';
-const API_BASE = (
-  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? RENDER_BACKEND : '/backend')
-).replace(/\/+$/, '');
+const RENDER_BACKEND = 'https://offerletter-backend-316h.onrender.com';
+
+function normalizeBaseUrl(value) {
+  let url = String(value || '').trim().replace(/\/+$/, '');
+  // Prevent accidental values such as https://https://host.onrender.com.
+  url = url.replace(/^(https?:\/\/)+(https?:\/\/)+/i, '$2');
+  return url;
+}
+
+const configuredBase = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = normalizeBaseUrl(
+  configuredBase || (import.meta.env.PROD ? RENDER_BACKEND : '/backend')
+);
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {
@@ -18,7 +26,7 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     throw new Error(
-      `Cannot reach the Offer Letter backend through ${API_BASE}. Check the Render URL in frontend/vercel.json and confirm the Render service is live. Browser: ${error?.message || 'Network request failed'}`
+      `Cannot reach the Offer Letter backend at ${API_BASE}. Confirm the Render service is live, the URL is correct, and CORS allows https://offerletter-frontend.vercel.app. Browser: ${error?.message || 'Network request failed'}`
     );
   }
 
@@ -33,9 +41,9 @@ async function request(path, options = {}) {
   if (!response.ok) {
     const detail = result.error || result.message || response.statusText;
     const hint = response.status === 413
-      ? 'The server or hosting proxy rejected the PDF because it is too large. Reduce PDF size and raise the backend/proxy upload limit.'
+      ? ' The server rejected the PDF because it is too large; check the backend upload limit.'
       : '';
-    throw new Error(`${detail || 'Request failed'} (HTTP ${response.status}) at ${API_BASE}${path}${hint ? `. ${hint}` : ''}`);
+    throw new Error(`${detail || 'Request failed'} (HTTP ${response.status}) at ${API_BASE}${path}${hint}`);
   }
   return result;
 }
