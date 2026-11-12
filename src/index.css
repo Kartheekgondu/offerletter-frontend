@@ -893,3 +893,12 @@ button { border-radius: 8px; min-height: 36px; font-size: 13px; }
   .field-group.span-2 { grid-column: auto; }
   .secondary-buttons { justify-content: stretch; }
 }
+
+
+/* Explain the manual attachment step for browser-based email composition. */
+.email-help {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}

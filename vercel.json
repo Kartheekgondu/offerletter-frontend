@@ -1,6 +1,11 @@
 
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
+    {
+      "source": "/backend/:path*",
+      "destination": "https://offerletter-backend-o6jw.onrender.com/:path*"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
