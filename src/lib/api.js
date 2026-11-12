@@ -2,7 +2,7 @@
  * Production calls Render directly. Local development uses Vite's /backend proxy.
  * Set VITE_API_BASE_URL only when you need to override the default.
  */
-const RENDER_BACKEND = 'https://offerletter-backend-316h.onrender.com';
+const RENDER_BACKEND = 'https://offerletter-backend-o6jw.onrender.com';
 
 function normalizeBaseUrl(value) {
   let url = String(value || '').trim().replace(/\/+$/, '');

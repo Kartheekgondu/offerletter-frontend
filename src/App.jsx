@@ -183,7 +183,7 @@ export default function App() {
       alert(`Offer letter sent to ${recipient}.`);
     } catch (err) {
       console.error('Email send failed:', err);
-      alert(`Could not send the email.\n\nDetails: ${err?.message ?? err}`);
+      setStatus('Email could not be sent. Please check the backend SMTP configuration and try again.');
     } finally {
       setBusy((b) => ({ ...b, email: false }));
     }
