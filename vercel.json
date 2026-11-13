@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/backend/:path*",
-      "destination": "https://offerletter-backend-o6jw.onrender.com/:path*"
+      "destination": "https://offerletter-backend-ihy7.onrender.com/:path*"
     },
     {
       "source": "/(.*)",
