@@ -251,15 +251,7 @@ export default function App() {
           <button type="button" onClick={handlePrint} disabled={busy.pdf}>
             {busy.pdf ? 'Preparing PDF...' : 'Download as PDF'}
           </button>
-          <button
-            id="editBtn"
-            type="button"
-            className={`icon-btn${editing ? ' active' : ''}`}
-            onClick={() => setEditing((e) => !e)}
-            disabled={!letter}
-          >
-            {editing ? '✓ Done Editing' : '✎ Edit Letter'}
-          </button>
+
         </div>
 
         <div className="email-row">
@@ -271,7 +263,7 @@ export default function App() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <button id="emailBtn" type="button" className="icon-btn" onClick={handleEmail} disabled={!letter || busy.email}>
-            {busy.email ? 'Sending Email...' : '✉ Email Offer Letter'}
+            {busy.email ? 'Sending Email...' : '✉ Send Mail'}
           </button>
         </div>
         <p className="email-help">The offer-letter PDF will be attached automatically and sent to the recipient email address.</p>

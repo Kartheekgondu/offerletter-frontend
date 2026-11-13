@@ -1,14 +1,11 @@
-# Email Offer Letter — Option 1 (No email API / SMTP credentials)
+# Offer Letter email delivery
 
-The Email Offer Letter button now:
-1. Validates the recipient address.
-2. Generates and downloads the current offer-letter PDF.
-3. Opens the user's configured email application using a `mailto:` link.
-4. Prefills the recipient, subject, and message.
-5. Asks the user to attach the downloaded PDF and press Send.
+The frontend `Send Mail` button now:
+1. Validates the recipient email address.
+2. Generates the current offer-letter PDF in memory.
+3. Sends the PDF and offer details to the backend `POST /api/send-offer` endpoint.
+4. Shows success only when the backend reports successful SMTP delivery, or displays the backend error.
 
-No `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, SMTP username, or SMTP password is needed for this frontend flow.
+The backend uses Spring Boot `JavaMailSender` and attaches the PDF directly. It does not open `mailto:` and does not require the recipient to manually attach the file.
 
-Important browser limitation: web pages cannot silently attach a locally generated PDF to a `mailto:` draft. The user must attach the downloaded PDF manually. The email is not sent automatically until the user presses Send in their email application.
-
-The backend remains in use for saving offer-letter records and history. The frontend no longer calls `/api/send-offer` for email sending.
+Configure Gmail SMTP credentials on the backend host only. See the backend project's `EMAIL-SETUP.md`. Render Free blocks outbound SMTP, so this implementation requires a host/plan that permits SMTP or a future HTTPS email-provider integration.
