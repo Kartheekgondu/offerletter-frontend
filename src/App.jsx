@@ -5,7 +5,7 @@ import Letter from './components/Letter.jsx';
 import { calculateSalaryBreakdown } from './lib/salary.js';
 import { addDaysISO, formatDateMonthFirst, toLocalISO } from './lib/format.js';
 import { findFirstError, isValidEmail } from './lib/validate.js';
-import { appendOfferSendFields, saveOffer } from './lib/api.js';
+import { appendOfferSendFields, saveOffer, sendOffer } from './lib/api.js';
 import { buildLetterPdfBlob, downloadLetterPdf } from './lib/pdf.js';
 
 const todayISO = toLocalISO(new Date());
@@ -162,6 +162,7 @@ export default function App() {
 
   async function handleEmail() {
     if (!letter) return alert('Generate the offer letter first.');
+
     const recipient = email.trim();
     if (!isValidEmail(recipient)) {
       alert('Enter a valid recipient email address.');
@@ -171,36 +172,30 @@ export default function App() {
 
     const { values } = letter;
     setBusy((b) => ({ ...b, email: true }));
+    setStatus('Preparing offer letter email...');
+
     try {
-      // A browser cannot silently attach a locally generated file to mailto.
-      // Download the PDF, then open the user's configured email application.
-      const fileName = `${(values.name || 'Candidate').replace(/[^A-Za-z0-9_-]+/g, '_')}_Offer_Letter.pdf`;
-      await downloadLetterPdf(getPageEls(), fileName);
+      const pdfBlob = await buildLetterPdfBlob(getPageEls());
+      const formData = new FormData();
+      formData.append('recipient', recipient);
+      formData.append('candidateName', values.name || 'Candidate');
+      formData.append('jobTitle', values.jobTitle || 'the offered role');
+      formData.append('dojDisplay', formatDateMonthFirst(values.doj));
+      formData.append('workLocation', values.workLocation || '');
+      formData.append(
+        'pdf',
+        pdfBlob,
+        `${(values.name || 'Candidate').replace(/[^A-Za-z0-9_-]+/g, '_')}_Offer_Letter.pdf`
+      );
 
-      const subject = `Offer Letter - ${values.name || 'Candidate'}`;
-      const body = [
-        `Dear ${values.name || 'Candidate'},`,
-        '',
-        `Please find your offer letter for ${values.jobTitle || 'the offered role'}.`,
-        `Date of joining: ${formatDateMonthFirst(values.doj)}.`,
-        `Work location: ${values.workLocation}.`,
-        '',
-        'Please find the downloaded offer-letter PDF attached to this email.',
-        '',
-        'Regards,',
-        'HR Department',
-        'UXINTERFACELY IT SOLUTIONS LLP',
-        '',
-        `Attachment to add: ${fileName}`,
-      ].join('\n');
-
-      const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailtoUrl;
-      setStatus(`Offer-letter PDF downloaded. Complete the email to ${recipient} and attach "${fileName}" before clicking Send.`);
+      const result = await sendOffer(formData);
+      setStatus(result.message || `Offer letter email sent successfully to ${recipient}.`);
+      alert(`Offer letter email sent successfully to ${recipient}.`);
     } catch (err) {
-      console.error('Email preparation failed:', err);
-      setStatus(`Could not prepare the offer-letter email: ${err?.message || 'Unknown error'}`);
-      alert(`Could not prepare the offer-letter email.\n\nDetails: ${err?.message || err}`);
+      console.error('Email send failed:', err);
+      const message = err?.message || 'Unknown email delivery error.';
+      setStatus(`Email could not be sent: ${message}`);
+      alert(`Email could not be sent.\\n\\n${message}`);
     } finally {
       setBusy((b) => ({ ...b, email: false }));
     }
@@ -276,13 +271,10 @@ export default function App() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <button id="emailBtn" type="button" className="icon-btn" onClick={handleEmail} disabled={!letter || busy.email}>
-            {busy.email ? 'Preparing Email...' : '✉ Open Email & Download PDF'}
+            {busy.email ? 'Sending Email...' : '✉ Email Offer Letter'}
           </button>
         </div>
-        <p className="email-help">
-          This opens your device's email application and downloads the offer-letter PDF.
-          Attach the downloaded PDF to the draft, then click Send. No email API key or SMTP setup is required.
-        </p>
+        <p className="email-help">The offer-letter PDF will be attached automatically and sent to the recipient email address.</p>
       </OfferForm>
 
       <p id="previewStatus">{status}</p>

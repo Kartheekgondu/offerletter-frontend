@@ -49,6 +49,7 @@ async function request(path, options = {}) {
 }
 
 export const saveOffer = (formData) => request('/api/save-offer', { method: 'POST', body: formData });
+export const sendOffer = (formData) => request('/api/send-offer', { method: 'POST', body: formData });
 export const searchOffers = (query) => request(`/api/search-offers?name=${encodeURIComponent(query)}`);
 export const listOffers = () => request('/api/offers');
 export const getOffer = (id) => request(`/api/offers/${encodeURIComponent(id)}`);
