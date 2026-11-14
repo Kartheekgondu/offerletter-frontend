@@ -1,18 +1,20 @@
 /*
- * API routing:
- * - Local Vite development: use /backend and let vite.config.js proxy to localhost:9091.
- * - Production (Vercel): call the Render backend directly, unless VITE_API_BASE_URL overrides it.
+ * Production calls Render directly. Local development uses Vite's /backend proxy.
+ * Set VITE_API_BASE_URL only when you need to override the default.
  */
 const RENDER_BACKEND = 'https://offerletter-backend-ihy7.onrender.com';
 
 function normalizeBaseUrl(value) {
-  return String(value || '').trim().replace(/\/+$/, '');
+  let url = String(value || '').trim().replace(/\/+$/, '');
+  // Prevent accidental values such as https://https://host.onrender.com.
+  url = url.replace(/^(https?:\/\/)+(https?:\/\/)+/i, '$2');
+  return url;
 }
 
-const API_BASE = import.meta.env.DEV
-  ? '/backend'
-  : normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || RENDER_BACKEND);
-
+const configuredBase = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = normalizeBaseUrl(
+  configuredBase || (import.meta.env.PROD ? RENDER_BACKEND : '/backend')
+);
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {
@@ -20,17 +22,11 @@ async function request(path, options = {}) {
   try {
     response = await fetch(`${API_BASE}${path}`, {
       ...options,
-      headers: {
-        ...(API_KEY ? { 'x-api-key': API_KEY } : {}),
-        ...(options.headers || {}),
-      },
+      headers: { ...(API_KEY ? { 'x-api-key': API_KEY } : {}), ...(options.headers || {}) },
     });
   } catch (error) {
-    const target = import.meta.env.DEV
-      ? 'the local backend at http://localhost:9091'
-      : `the backend at ${API_BASE}`;
     throw new Error(
-      `Cannot reach ${target}. Confirm the backend is running, its URL is correct, and production CORS allows the Vercel frontend. Browser: ${error?.message || 'Network request failed'}`
+      `Cannot reach the Offer Letter backend at ${API_BASE}. Confirm the Render service is live, the URL is correct, and CORS allows https://offerletter-frontend.vercel.app. Browser: ${error?.message || 'Network request failed'}`
     );
   }
 
@@ -42,7 +38,6 @@ async function request(path, options = {}) {
     const body = await response.text();
     result = body ? { message: body } : {};
   }
-
   if (!response.ok) {
     const detail = result.error || result.message || response.statusText;
     const hint = response.status === 413
