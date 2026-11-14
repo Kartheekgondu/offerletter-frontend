@@ -1,18 +1,12 @@
 /*
- * Use the same-origin /backend path in both production and local development.
- *
- * Vercel rewrites /backend/* to the Render backend.
- * Vite proxies /backend/* to localhost:9091 during local development.
- *
- * This avoids browser-to-Render cross-origin requests and therefore avoids
- * browser CORS preflight problems for the frontend.
+ * Same-origin API routing, following the Appraisal frontend pattern.
+ * Vercel forwards /backend/* to Render; Vite forwards it to localhost:9091.
  */
-const API_BASE = '/backend';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/backend').replace(/\/+$/, '');
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function request(path, options = {}) {
   let response;
-
   try {
     response = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -23,30 +17,25 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     throw new Error(
-      `Cannot reach the Offer Letter backend through ${API_BASE}. ` +
-      `Check that the Render backend is running and the Vercel /backend rewrite is deployed. ` +
-      `Browser: ${error?.message || 'Network request failed'}`
+      `Cannot reach Offer Letter backend through ${API_BASE}. ` +
+      `Check the Vercel rewrite and Render service. ${error?.message || ''}`
     );
   }
 
   const contentType = response.headers.get('content-type') || '';
-  let result = {};
+  let data = {};
   if (contentType.includes('application/json')) {
-    result = await response.json();
+    data = await response.json();
   } else {
     const body = await response.text();
-    result = body ? { message: body } : {};
+    data = body ? { message: body } : {};
   }
 
   if (!response.ok) {
-    const detail = result.error || result.message || response.statusText || 'Request failed';
-    const hint = response.status === 413
-      ? ' The PDF exceeds the server upload limit.'
-      : '';
-    throw new Error(`${detail} (HTTP ${response.status})${hint}`);
+    const detail = data.error || data.message || response.statusText || 'Request failed';
+    throw new Error(`${detail} (HTTP ${response.status})`);
   }
-
-  return result;
+  return data;
 }
 
 export const saveOffer = (formData) =>
@@ -55,8 +44,9 @@ export const saveOffer = (formData) =>
 export const sendOffer = (formData) =>
   request('/api/send-offer', { method: 'POST', body: formData });
 
+/* Appraisal-style search URL. Backend also keeps /api/search-offers as an alias. */
 export const searchOffers = (query) =>
-  request(`/api/search-offers?name=${encodeURIComponent(query)}`);
+  request(`/api/offers/search?q=${encodeURIComponent(query)}`);
 
 export const listOffers = () => request('/api/offers');
 
