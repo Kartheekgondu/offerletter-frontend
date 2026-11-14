@@ -1,42 +1,56 @@
-import axios from "axios";
-
-// Match the Appraisal frontend: same-origin /backend proxy and Axios client.
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/backend").replace(/\/+$/, "");
+/*
+ * Offer Letter API client.
+ * Uses same-origin /backend, matching the Appraisal project's proxy pattern.
+ * Native fetch is used so no extra axios dependency is required.
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/backend").replace(/\/+$/, "");
 const API_KEY = import.meta.env.VITE_API_KEY || "";
 
-const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 20000,
-  headers: API_KEY ? { "x-api-key": API_KEY } : {},
-});
+async function request(path, options = {}) {
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        ...(API_KEY ? { "x-api-key": API_KEY } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch (error) {
+    throw new Error(
+      `Cannot reach backend via ${API_BASE}. Check the Render service and Vercel rewrite. ${error?.message || ""}`
+    );
+  }
 
-export const saveOffer = async (formData) => {
-  const response = await api.post("/api/save-offer", formData);
-  return response.data;
-};
+  const contentType = response.headers.get("content-type") || "";
+  let data = {};
+  if (contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    const body = await response.text();
+    data = body ? { message: body } : {};
+  }
 
-export const sendOffer = async (formData) => {
-  const response = await api.post("/api/send-offer", formData);
-  return response.data;
-};
+  if (!response.ok) {
+    const detail = data?.message || data?.error || response.statusText || "Request failed";
+    throw new Error(`${detail} (HTTP ${response.status})`);
+  }
+  return data;
+}
 
-// Appraisal-style route: /api/<resource>/search?q=<term>
-export const searchOffers = async (query) => {
-  const response = await api.get("/api/offers/search", {
-    params: { q: query },
-  });
-  return response.data;
-};
+export const saveOffer = (formData) =>
+  request("/api/save-offer", { method: "POST", body: formData });
 
-export const listOffers = async () => {
-  const response = await api.get("/api/offers");
-  return response.data;
-};
+export const sendOffer = (formData) =>
+  request("/api/send-offer", { method: "POST", body: formData });
 
-export const getOffer = async (id) => {
-  const response = await api.get(`/api/offers/${encodeURIComponent(id)}`);
-  return response.data;
-};
+// Appraisal-style route: GET /api/offers/search?q=<term>
+export const searchOffers = (query) =>
+  request(`/api/offers/search?q=${encodeURIComponent(query)}`);
+
+export const listOffers = () => request("/api/offers");
+
+export const getOffer = (id) => request(`/api/offers/${encodeURIComponent(id)}`);
 
 export function appendOfferSendFields(formData, values, salary) {
   formData.append("letterDate", values.letterDate);
@@ -56,5 +70,3 @@ export function appendOfferSendFields(formData, values, salary) {
   formData.append("tdsIncluded", String(salary.tdsIncluded));
   formData.append("tdsAmount", String(salary.tdsAmount));
 }
-
-export { api };
