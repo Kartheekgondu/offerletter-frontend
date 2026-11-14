@@ -1,6 +1,10 @@
 /*
- * Same-origin API routing, following the Appraisal frontend pattern.
- * Vercel forwards /backend/* to Render; Vite forwards it to localhost:9091.
+ * Offer Letter API client.
+ * Uses the original endpoint implemented by the uploaded OfferLetterController:
+ * GET /api/search-offers?name=...
+ *
+ * Browser calls same-origin /backend. Vercel rewrites /backend/* to Render.
+ * Local Vite proxies /backend/* to localhost:9091.
  */
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/backend').replace(/\/+$/, '');
 const API_KEY = import.meta.env.VITE_API_KEY || '';
@@ -16,15 +20,12 @@ async function request(path, options = {}) {
       },
     });
   } catch (error) {
-    throw new Error(
-      `Cannot reach Offer Letter backend through ${API_BASE}. ` +
-      `Check the Vercel rewrite and Render service. ${error?.message || ''}`
-    );
+    throw new Error(`Cannot reach backend via ${API_BASE}. Check Render service and Vercel rewrite. ${error?.message || ''}`);
   }
 
-  const contentType = response.headers.get('content-type') || '';
-  let data = {};
-  if (contentType.includes('application/json')) {
+  const type = response.headers.get('content-type') || '';
+  let data;
+  if (type.includes('application/json')) {
     data = await response.json();
   } else {
     const body = await response.text();
@@ -32,7 +33,13 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    const detail = data.error || data.message || response.statusText || 'Request failed';
+    const detail = data?.message || data?.error || response.statusText || 'Request failed';
+    if (response.status === 404) {
+      throw new Error(
+        `HTTP 404 from ${API_BASE}${path}. The deployed backend does not expose this route, ` +
+        `or Vercel is not forwarding /backend to the Render service. Verify the latest backend deployment and Vercel rewrite.`
+      );
+    }
     throw new Error(`${detail} (HTTP ${response.status})`);
   }
   return data;
@@ -44,14 +51,13 @@ export const saveOffer = (formData) =>
 export const sendOffer = (formData) =>
   request('/api/send-offer', { method: 'POST', body: formData });
 
-/* Appraisal-style search URL. Backend also keeps /api/search-offers as an alias. */
+/* Keep the route that is present in the original uploaded backend. */
 export const searchOffers = (query) =>
-  request(`/api/offers/search?q=${encodeURIComponent(query)}`);
+  request(`/api/search-offers?name=${encodeURIComponent(query)}`);
 
 export const listOffers = () => request('/api/offers');
 
-export const getOffer = (id) =>
-  request(`/api/offers/${encodeURIComponent(id)}`);
+export const getOffer = (id) => request(`/api/offers/${encodeURIComponent(id)}`);
 
 export function appendOfferSendFields(formData, values, salary) {
   formData.append('letterDate', values.letterDate);
