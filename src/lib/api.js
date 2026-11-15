@@ -44,11 +44,44 @@ export const saveOffer = (formData) =>
 export const sendOffer = (formData) =>
   request("/api/send-offer", { method: "POST", body: formData });
 
-// Appraisal-style route: GET /api/offers/search?q=<term>
-export const searchOffers = (query) =>
-  request(`/api/offers/search?q=${encodeURIComponent(query)}`);
-
+// Search saved letters. Prefer the server-side search endpoint (same pattern as
+// the Appraisal app). Older backend deployments may not yet expose that route;
+// in that case fall back to the existing list endpoint and filter locally.
 export const listOffers = () => request("/api/offers");
+
+const normalizeRows = (data) =>
+  Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
+
+const matchesOffer = (row, term) => {
+  const needle = String(term || "").trim().toLocaleLowerCase();
+  if (!needle) return true;
+  const haystack = [
+    row?.id,
+    row?.candidateName, row?.candidate_name,
+    row?.jobTitle, row?.job_title,
+    row?.recipientEmail, row?.recipient_email,
+    row?.department,
+    row?.workLocation, row?.work_location,
+    row?.status,
+  ].filter((value) => value !== null && value !== undefined)
+    .join(" ")
+    .toLocaleLowerCase();
+  return haystack.includes(needle);
+};
+
+export const searchOffers = async (query) => {
+  const term = String(query || "").trim();
+  if (!term) return listOffers();
+
+  try {
+    return await request(`/api/offers/search?q=${encodeURIComponent(term)}`);
+  } catch (error) {
+    // Compatibility with older Render deployments which only have GET /api/offers.
+    if (!String(error?.message || error).includes("HTTP 404")) throw error;
+    const data = await listOffers();
+    return { success: true, results: normalizeRows(data).filter((row) => matchesOffer(row, term)) };
+  }
+};
 
 export const getOffer = (id) => request(`/api/offers/${encodeURIComponent(id)}`);
 

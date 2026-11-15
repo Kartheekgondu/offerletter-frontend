@@ -36,7 +36,7 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
       if (!rows.length) setMessage(term ? `No previous offer letters found for "${term}".` : 'No saved offer letters found.');
     } catch (err) {
       setResults([]);
-      setMessage(`Search failed: ${err.message}`);
+      setMessage(`Could not load previous offer letters. ${err.message}`);
     } finally {
       setLoading(false);
     }
