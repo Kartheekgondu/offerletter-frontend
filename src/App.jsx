@@ -195,7 +195,7 @@ export default function App() {
       console.error('Email send failed:', err);
       const message = err?.message || 'Unknown email delivery error.';
       setStatus(`Email could not be sent: ${message}`);
-      alert(`Email could not be sent.\\n\\n${message}`);
+      alert(`Email could not be sent.\n\n${message}`);
     } finally {
       setBusy((b) => ({ ...b, email: false }));
     }
