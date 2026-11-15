@@ -1,7 +1,5 @@
 /*
- * Offer Letter API client.
- * Uses same-origin /backend, matching the Appraisal project's proxy pattern.
- * Native fetch is used so no extra axios dependency is required.
+ * Offer Letter API client. Uses the Vercel /backend rewrite, like the Appraisal app.
  */
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/backend").replace(/\/+$/, "");
 const API_KEY = import.meta.env.VITE_API_KEY || "";
@@ -33,7 +31,9 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     const detail = data?.message || data?.error || response.statusText || "Request failed";
-    throw new Error(`${detail} (HTTP ${response.status})`);
+    const error = new Error(`${detail} (HTTP ${response.status})`);
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
@@ -43,11 +43,6 @@ export const saveOffer = (formData) =>
 
 export const sendOffer = (formData) =>
   request("/api/send-offer", { method: "POST", body: formData });
-
-// Search saved letters. Prefer the server-side search endpoint (same pattern as
-// the Appraisal app). Older backend deployments may not yet expose that route;
-// in that case fall back to the existing list endpoint and filter locally.
-export const listOffers = () => request("/api/offers");
 
 const normalizeRows = (data) =>
   Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
@@ -69,18 +64,44 @@ const matchesOffer = (row, term) => {
   return haystack.includes(needle);
 };
 
+// The primary route follows the Appraisal app's /search?q= convention.
+// Older backend versions may expose only the list route; filter those results locally.
+export const listOffers = async () => {
+  const routes = ["/api/offers", "/api/offer-letters", "/api/offerletters"];
+  let lastError;
+  for (const route of routes) {
+    try {
+      return await request(route);
+    } catch (error) {
+      lastError = error;
+      if (error.status !== 404) throw error;
+    }
+  }
+  throw lastError || new Error("Previous offer letters endpoint is unavailable.");
+};
+
 export const searchOffers = async (query) => {
   const term = String(query || "").trim();
   if (!term) return listOffers();
 
-  try {
-    return await request(`/api/offers/search?q=${encodeURIComponent(term)}`);
-  } catch (error) {
-    // Compatibility with older Render deployments which only have GET /api/offers.
-    if (!String(error?.message || error).includes("HTTP 404")) throw error;
-    const data = await listOffers();
-    return { success: true, results: normalizeRows(data).filter((row) => matchesOffer(row, term)) };
+  const routes = [
+    `/api/offers/search?q=${encodeURIComponent(term)}`,
+    `/api/offer-letters/search?q=${encodeURIComponent(term)}`,
+    `/api/search-offers?name=${encodeURIComponent(term)}`,
+  ];
+  let lastError;
+  for (const route of routes) {
+    try {
+      return await request(route);
+    } catch (error) {
+      lastError = error;
+      if (error.status !== 404) throw error;
+    }
   }
+
+  // If an older backend has no search route, use its list endpoint and filter locally.
+  const all = await listOffers();
+  return { success: true, results: normalizeRows(all).filter((row) => matchesOffer(row, term)) };
 };
 
 export const getOffer = (id) => request(`/api/offers/${encodeURIComponent(id)}`);

@@ -31,7 +31,7 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
     setShowResults(true);
     try {
       const data = term ? await searchOffers(term) : await listOffers();
-      const rows = Array.isArray(data?.results) ? data.results : [];
+      const rows = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
       setResults(rows);
       if (!rows.length) setMessage(term ? `No previous offer letters found for "${term}".` : 'No saved offer letters found.');
     } catch (err) {
