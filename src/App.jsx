@@ -193,9 +193,18 @@ export default function App() {
       alert(`Offer letter email sent successfully to ${recipient}.`);
     } catch (err) {
       console.error('Email send failed:', err);
-      const message = err?.message || 'Unknown email delivery error.';
-      setStatus(`Email could not be sent: ${message}`);
-      alert(`Email could not be sent.\n\n${message}`);
+      const technicalMessage = err?.message || 'Unknown email delivery error.';
+      const statusCode = err?.status;
+      const message = statusCode === 503 || statusCode === 500
+        ? 'The email service is temporarily unavailable. Please verify Gmail SMTP settings on the Render backend (MAIL_USERNAME, MAIL_PASSWORD and MAIL_FROM), then try again.'
+        : technicalMessage;
+      setStatus(`Email delivery needs attention: ${message}`);
+      alert(`The offer letter email was not sent.\n\n${message}`);
+      console.error('Email delivery diagnostic:', {
+        status: statusCode,
+        message: technicalMessage,
+        response: err?.responseBody
+      });
     } finally {
       setBusy((b) => ({ ...b, email: false }));
     }

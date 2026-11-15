@@ -25,8 +25,9 @@ async function request(path, options = {}) {
   const data = typeof raw === "string" ? { message: raw } : (raw || {});
   if (!response.ok) {
     const message = data.error || data.message || response.statusText || "Request failed";
-    const error = new Error(`${message} (HTTP ${response.status})`);
+    const error = new Error(message);
     error.status = response.status;
+    error.responseBody = data;
     throw error;
   }
   return data;
