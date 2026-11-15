@@ -198,8 +198,9 @@ export default function App() {
       const message = statusCode === 503 || statusCode === 500
         ? 'The email service is temporarily unavailable. Please verify Gmail SMTP settings on the Render backend (MAIL_USERNAME, MAIL_PASSWORD and MAIL_FROM), then try again.'
         : technicalMessage;
-      setStatus(`Email delivery needs attention: ${message}`);
-      alert(`The offer letter email was not sent.\n\n${message}`);
+      // Do not interrupt the user with a browser alert. Keep a concise inline
+      // status while preserving the detailed diagnostic in DevTools/Render logs.
+      setStatus('Email was not sent. Check the Offer Letter backend email configuration and Render logs.');
       console.error('Email delivery diagnostic:', {
         status: statusCode,
         message: technicalMessage,
