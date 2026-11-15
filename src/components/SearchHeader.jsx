@@ -36,7 +36,13 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
       if (!rows.length) setMessage(term ? `No previous offer letters found for "${term}".` : 'No saved offer letters found.');
     } catch (err) {
       setResults([]);
-      setMessage(`Could not load previous offer letters. ${err.message}`);
+      // A missing history endpoint is a deployment/API issue, not proof of zero saved records.
+      // Do not show raw HTTP 404 / Not Found errors in the employee-facing UI.
+      if (err?.status === 404) {
+        setMessage('Previous offer letters are temporarily unavailable. Please try again later.');
+      } else {
+        setMessage('Unable to retrieve previous offer letters right now. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -51,7 +57,7 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
       onViewOffer?.(data.offer);
       setShowResults(false);
     } catch (err) {
-      setMessage(`Could not open this offer letter: ${err.message}`);
+      setMessage('Unable to open this offer letter right now. Please try again later.');
       setShowResults(true);
     } finally {
       setLoading(false);
