@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/backend/:path*",
-      "destination": "https://offerletter-backend-nrpq.onrender.com/:path*"
+      "destination": "https://offerletter-backend-9pph.onrender.com/:path*"
     },
     {
       "source": "/(.*)",

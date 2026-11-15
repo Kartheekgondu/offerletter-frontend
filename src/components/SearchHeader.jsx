@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { COMPANY } from '../lib/company.js';
-import { getOffer, listOffers, searchOffers } from '../lib/api.js';
+import { getOffer, listOffers, normalizeOfferRows, searchOffers } from '../lib/api.js';
 
 export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [results, setResults] = useState([]);
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(true);
   const searchRef = useRef(null);
+  const requestSequence = useRef(0);
 
   useEffect(() => {
     const closeOutside = (event) => {
@@ -18,34 +19,42 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
     return () => document.removeEventListener('mousedown', closeOutside);
   }, []);
 
-  // Refresh silently after save; do not load/display all records until the user asks.
-  useEffect(() => {
-    if (refreshKey > 0) setMessage('Offer letter saved. Search to find it in previous records.');
-  }, [refreshKey]);
-
-  async function handleSearch(event, overrideQuery = query) {
-    event?.preventDefault();
-    const term = overrideQuery.trim();
+  async function loadHistory(term = '') {
+    const sequence = ++requestSequence.current;
     setLoading(true);
     setMessage('');
     setShowResults(true);
     try {
       const data = term ? await searchOffers(term) : await listOffers();
-      const rows = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
+      if (sequence !== requestSequence.current) return;
+      const rows = normalizeOfferRows(data);
       setResults(rows);
-      if (!rows.length) setMessage(term ? `No previous offer letters found for "${term}".` : 'No saved offer letters found.');
+      if (!rows.length) setMessage(term ? `No previous offer letters found for "${term}".` : 'No saved offer letters were returned by the database.');
     } catch (err) {
+      if (sequence !== requestSequence.current) return;
       setResults([]);
-      // A missing history endpoint is a deployment/API issue, not proof of zero saved records.
-      // Do not show raw HTTP 404 / Not Found errors in the employee-facing UI.
-      if (err?.status === 404) {
-        setMessage('Previous offer letters are temporarily unavailable. Please try again later.');
-      } else {
-        setMessage('Unable to retrieve previous offer letters right now. Please try again later.');
-      }
+      console.error('Could not fetch previous offer letters:', err);
+      setMessage(`Could not connect to saved offer letters. ${err?.message || 'Check the Render API URL and database connection.'}`);
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) setLoading(false);
     }
+  }
+
+  // Fetch existing database records as soon as the frontend opens.
+  useEffect(() => {
+    loadHistory('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Refresh the history after the current letter has been saved.
+  useEffect(() => {
+    if (refreshKey > 0) loadHistory(query.trim());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
+
+  async function handleSearch(event) {
+    event?.preventDefault();
+    await loadHistory(query.trim());
   }
 
   async function handleView(id) {
@@ -53,11 +62,15 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
     setMessage('');
     try {
       const data = await getOffer(id);
-      if (!data?.offer) throw new Error('The selected offer letter was not returned by the server.');
-      onViewOffer?.(data.offer);
+      const offer = data?.offer || data?.data || data;
+      if (!offer || (!offer.id && !offer.candidateName && !offer.candidate_name)) {
+        throw new Error('The selected offer letter was not returned by the server.');
+      }
+      onViewOffer?.(offer);
       setShowResults(false);
     } catch (err) {
-      setMessage('Unable to open this offer letter right now. Please try again later.');
+      console.error('Could not open saved offer letter:', err);
+      setMessage(`Could not open this offer letter: ${err.message}`);
       setShowResults(true);
     } finally {
       setLoading(false);
@@ -74,12 +87,14 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
             <input
               id="searchName" type="search"
               placeholder="Search name, email, job title, department or ID"
-              value={query} onChange={(event) => setQuery(event.target.value)}
-              onFocus={() => { if (results.length) setShowResults(true); }}
-              aria-label="Search previous offer letters" autoComplete="off"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onFocus={() => setShowResults(true)}
+              aria-label="Search previous offer letters"
+              autoComplete="off"
             />
-            <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Searching...' : 'Search'}</button>
-            <button type="button" onClick={() => { setQuery(''); handleSearch(undefined, ''); }} disabled={loading}>All</button>
+            <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Loading...' : 'Search'}</button>
+            <button type="button" onClick={() => { setQuery(''); loadHistory(''); }} disabled={loading}>All</button>
           </form>
           {showResults && (
             <div className="offer-history-dropdown" role="region" aria-label="Previous offer letters">
@@ -87,7 +102,7 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
                 <strong>Previous Offer Letters</strong>
                 <span>{results.length} record{results.length === 1 ? '' : 's'}</span>
               </div>
-              {loading && <p className="offer-history-message">Searching saved letters...</p>}
+              {loading && <p className="offer-history-message">Loading saved offer letters...</p>}
               {!loading && message && <p className="offer-history-message">{message}</p>}
               {!loading && !message && results.map((row) => (
                 <div className="offer-history-item" key={row.id}>
