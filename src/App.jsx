@@ -193,14 +193,14 @@ export default function App() {
       alert(`Offer letter email sent successfully to ${recipient}.`);
     } catch (err) {
       console.error('Email send failed:', err);
-      const technicalMessage = err?.message || 'Unknown email delivery error.';
       const statusCode = err?.status;
-      const message = statusCode === 503 || statusCode === 500
-        ? 'The email service is temporarily unavailable. Please verify Gmail SMTP settings on the Render backend (MAIL_USERNAME, MAIL_PASSWORD and MAIL_FROM), then try again.'
-        : technicalMessage;
-      // Do not interrupt the user with a browser alert. Keep a concise inline
-      // status while preserving the detailed diagnostic in DevTools/Render logs.
-      setStatus('Email was not sent. Check the Offer Letter backend email configuration and Render logs.');
+      const serverMessage = err?.responseBody?.error || err?.responseBody?.message;
+      const technicalMessage = serverMessage || err?.message || 'Unknown email delivery error.';
+      // Show the actual backend diagnostic in the page instead of hiding it
+      // behind a generic message. Do not show credentials or request headers.
+      setStatus(
+        `Email was not sent${statusCode ? ` (HTTP ${statusCode})` : ''}: ${technicalMessage}`
+      );
       console.error('Email delivery diagnostic:', {
         status: statusCode,
         message: technicalMessage,
