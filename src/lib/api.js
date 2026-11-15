@@ -4,7 +4,6 @@
  * that owns the offer_sends database. Keep that database unchanged.
  */
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/backend").replace(/\/+$/, "");
-const API_KEY = import.meta.env.VITE_API_KEY || "";
 
 async function request(path, options = {}) {
   let response;
@@ -12,7 +11,6 @@ async function request(path, options = {}) {
     response = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers: {
-        ...(API_KEY ? { "x-api-key": API_KEY } : {}),
         ...(options.headers || {}),
       },
     });

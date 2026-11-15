@@ -7,7 +7,6 @@
 - Keeps the previous-offer search workflow: search by candidate name, recipient email, job title, department, work location, or saved record ID; open a result to restore its saved form details; use its PDF link to open the saved file.
 
 ## Environment
-Set `VITE_API_BASE` to the deployed Spring Boot API base URL. If the API uses an API key, set `VITE_API_KEY` to the matching key at build time.
 
 ## Build
 ```bash
