@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { COMPANY } from '../lib/company.js';
 import { getOffer, listOffers, normalizeOfferRows, searchOffers } from '../lib/api.js';
+import { normalizeSingleSpaces, titleCaseWords, lettersNumbersSpacesOnly, limitWords, countWords } from '../lib/inputText.js';
 
 export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
   const [query, setQuery] = useState('');
@@ -88,11 +89,13 @@ export default function SearchHeader({ refreshKey = 0, onViewOffer }) {
               id="searchName" type="search"
               placeholder="Search name, email, job title, department or ID"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => setQuery(limitWords(titleCaseWords(lettersNumbersSpacesOnly(normalizeSingleSpaces(event.target.value))), 50))}
+              onBlur={(event) => setQuery(limitWords(titleCaseWords(lettersNumbersSpacesOnly(normalizeSingleSpaces(event.target.value))), 50).trimEnd())}
               onFocus={() => setShowResults(true)}
               aria-label="Search previous offer letters"
               autoComplete="off"
             />
+            <small className="word-count search-word-count">{countWords(query)}/50 words</small>
             <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Loading...' : 'Search'}</button>
             <button type="button" onClick={() => { setQuery(''); loadHistory(''); }} disabled={loading}>All</button>
           </form>
