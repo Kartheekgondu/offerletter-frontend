@@ -7,6 +7,7 @@ import { addDaysISO, formatDateMonthFirst, toLocalISO } from './lib/format.js';
 import { findFirstError, isValidEmail } from './lib/validate.js';
 import { appendOfferSendFields, saveOffer, sendOffer } from './lib/api.js';
 import { buildLetterPdfBlob, downloadLetterPdf } from './lib/pdf.js';
+import { normalizeSingleSpaces, removeEmailWhitespace, titleCaseWords, limitWords } from './lib/inputText.js';
 
 const todayISO = toLocalISO(new Date());
 
@@ -33,12 +34,18 @@ const initialForm = () => ({
 
 /* Input restrictions, applied as the user types */
 const digitsOnly = (v) => v.replace(/[^0-9]/g, '');
-const nameCharacters = (v) => v.replace(/[^A-Za-z\s.'’-]/g, '');
-const locationCharacters = (v) => v.replace(/[^A-Za-z0-9\s,.'&/()-]/g, '');
+// Free-text fields accept letters, numbers and ordinary spaces only.
+const lettersNumbersSpacesOnly = (v) => v.replace(/[^A-Za-z0-9 ]/g, '');
+const TITLE_CASE_FIELDS = new Set(['empName', 'jobTitle', 'department', 'roleDesc', 'customLocation']);
+const WORD_LIMITS = { empName: 50, jobTitle: 50, department: 50, customLocation: 50, roleDesc: 300 };
+
 const SANITIZERS = {
   // "john doe" -> "John Doe"
-  empName: (v) => nameCharacters(v).replace(/(^|\s)([a-z])/g, (m, boundary, letter) => boundary + letter.toUpperCase()),
-  customLocation: locationCharacters,
+  empName: lettersNumbersSpacesOnly,
+  jobTitle: lettersNumbersSpacesOnly,
+  department: lettersNumbersSpacesOnly,
+  roleDesc: lettersNumbersSpacesOnly,
+  customLocation: lettersNumbersSpacesOnly,
   annualCtc: digitsOnly,
   noticePeriod: digitsOnly,
   variablePayAmount: digitsOnly,
@@ -97,7 +104,14 @@ export default function App() {
   const getPageEls = () => Array.from(letterRef.current?.querySelectorAll('.page') ?? []);
 
   function setField(name, raw) {
-    const value = SANITIZERS[name] ? SANITIZERS[name](raw) : raw;
+    let normalized = typeof raw === 'string' ? normalizeSingleSpaces(raw) : raw;
+    const sanitized = SANITIZERS[name] ? SANITIZERS[name](normalized) : normalized;
+    const titleCased = typeof sanitized === 'string' && TITLE_CASE_FIELDS.has(name)
+      ? titleCaseWords(sanitized)
+      : sanitized;
+    const value = typeof titleCased === 'string' && WORD_LIMITS[name]
+      ? limitWords(titleCased, WORD_LIMITS[name])
+      : titleCased;
     setForm((current) => ({ ...current, [name]: value }));
     setErrors((current) => (current[name] ? { ...current, [name]: '' } : current));
   }
@@ -220,14 +234,14 @@ export default function App() {
           const isStandardLocation = standardLocations.includes(saved.workLocation);
           const nextForm = {
             ...initialForm(),
-            empName: saved.candidateName || '',
+            empName: titleCaseWords(saved.candidateName || ''),
             doj: saved.dateOfJoining || '',
             letterDate: saved.letterDate || '',
-            jobTitle: saved.jobTitle || '',
-            department: saved.department || '',
-            roleDesc: saved.roleDescription || '',
+            jobTitle: titleCaseWords(saved.jobTitle || ''),
+            department: titleCaseWords(saved.department || ''),
+            roleDesc: titleCaseWords(saved.roleDescription || ''),
             workLocation: isStandardLocation ? saved.workLocation : '__custom',
-            customLocation: isStandardLocation ? '' : (saved.workLocation || ''),
+            customLocation: isStandardLocation ? '' : titleCaseWords(saved.workLocation || ''),
             annualCtc: String(saved.annualCtc ?? ''),
             noticePeriod: String(saved.noticePeriodDays ?? 90),
             variablePay: saved.variablePayIncluded ? 'yes' : 'no',
@@ -270,7 +284,8 @@ export default function App() {
             type="email"
             placeholder="Recipient's email address"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(removeEmailWhitespace(e.target.value))}
+            onBlur={(e) => setEmail(removeEmailWhitespace(e.target.value).trim())}
           />
           <button id="emailBtn" type="button" className="icon-btn" onClick={handleEmail} disabled={!letter || busy.email}>
             {busy.email ? 'Sending Email...' : '✉ Send Mail'}
