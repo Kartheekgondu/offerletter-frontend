@@ -3,7 +3,7 @@
  * The Vercel same-origin /backend proxy targets the existing Render service
  * that owns the offer_sends database. Keep that database unchanged.
  */
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/backend").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://offerletter-backend-yh42.onrender.com").replace(/\/+$/, "");
 
 async function request(path, options = {}) {
   let response;

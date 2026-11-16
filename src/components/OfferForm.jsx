@@ -1,5 +1,3 @@
-import { countWords } from '../lib/inputText.js';
-
 function Field({ id, label, error, span2 = false, children }) {
   return (
     <div className={`field-group${span2 ? ' span-2' : ''}`}>
@@ -38,7 +36,6 @@ export default function OfferForm({ form, errors, onChange, pf, children }) {
     id,
     value: form[id],
     onChange: (e) => onChange(id, e.target.value),
-    onBlur: (e) => onChange(id, e.target.value.trimEnd()),
   });
 
   return (
@@ -46,7 +43,6 @@ export default function OfferForm({ form, errors, onChange, pf, children }) {
       <div className="form-grid">
         <Field id="empName" label="Full Name" error={errors.empName}>
           <input type="text" placeholder="e.g. Ogirala Lakshmi Prathyusha" {...text('empName')} />
-          <small className="word-count">{countWords(form.empName)}/50 words</small>
         </Field>
 
         <Field id="doj" label="Date of Joining" error={errors.doj}>
@@ -59,12 +55,10 @@ export default function OfferForm({ form, errors, onChange, pf, children }) {
 
         <Field id="jobTitle" label="Job Title" error={errors.jobTitle}>
           <input type="text" placeholder="e.g. SOFTWARE ENGINEER L1" {...text('jobTitle')} />
-          <small className="word-count">{countWords(form.jobTitle)}/50 words</small>
         </Field>
 
         <Field id="department" label="Department" error={errors.department}>
           <input type="text" placeholder="e.g. Services" {...text('department')} />
-          <small className="word-count">{countWords(form.department)}/50 words</small>
         </Field>
 
         <Field id="workLocation" label="Work Location">
@@ -78,7 +72,6 @@ export default function OfferForm({ form, errors, onChange, pf, children }) {
         {form.workLocation === '__custom' && (
           <Field id="customLocation" label="Custom Work Location">
             <input type="text" placeholder="Custom work location" {...text('customLocation')} />
-            <small className="word-count">{countWords(form.customLocation)}/50 words</small>
           </Field>
         )}
 
@@ -96,7 +89,6 @@ export default function OfferForm({ form, errors, onChange, pf, children }) {
             placeholder="e.g. As a Frontend Developer, you will develop responsive web applications..."
             {...text('roleDesc')}
           />
-          <small className="word-count">{countWords(form.roleDesc)}/300 words</small>
         </Field>
 
         {/* Variable pay */}
